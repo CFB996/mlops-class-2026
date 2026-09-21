@@ -1,0 +1,15 @@
+# Environment for the model-serving API.
+#
+# The ML pins are identical to requirements-notebook.txt on purpose. A model is
+# serialized by one environment and deserialized by another, and a scikit-learn version
+# mismatch between the two is one of the most common ways a model that scored 0.97 in a
+# notebook fails in production.
+
+fastapi==0.141.1
+uvicorn==0.53.0
+
+mlflow==3.16.1
+scikit-learn==1.9.1
+pandas==3.0.6
+numpy==2.5.3
+matplotlib==3.11.2

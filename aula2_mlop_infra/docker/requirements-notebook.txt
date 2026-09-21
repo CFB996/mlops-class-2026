@@ -1,0 +1,18 @@
+# Environment for the JupyterLab container.
+#
+# Every version here is pinned on purpose. Two students running `docker compose up`
+# three months apart must get byte-identical environments — that is the whole point of
+# Infrastructure as Code, and an unpinned dependency quietly breaks it.
+#
+# The scientific stack is listed explicitly even though `mlflow` would install all of it
+# as a transitive dependency. Depending on a dependency-of-a-dependency means the version
+# you get is decided by someone else's release schedule.
+
+mlflow==3.16.1
+scikit-learn==1.9.1
+pandas==3.0.6
+numpy==2.5.3
+matplotlib==3.11.2
+
+# JupyterLab progress bars; without it MLflow prints a tqdm/IProgress warning.
+ipywidgets==8.1.7

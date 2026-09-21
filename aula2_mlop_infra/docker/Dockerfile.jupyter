@@ -1,0 +1,24 @@
+# JupyterLab workspace for the bonsai classifier.
+#
+# The base image is `minimal-notebook`, which deliberately ships WITHOUT numpy, pandas,
+# scikit-learn or matplotlib. We install them ourselves, pinned, so the environment is
+# described by this repository and not assembled at runtime.
+#
+# Pinned to python-3.13 to match the API container: a model trained under one Python and
+# served under another is a classic source of "works in the notebook, 500s in production".
+FROM quay.io/jupyter/minimal-notebook:python-3.13
+
+COPY docker/requirements-notebook.txt /tmp/requirements-notebook.txt
+
+RUN pip install --no-cache-dir -r /tmp/requirements-notebook.txt && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# Starts as root only long enough to match the host's uid on the bind mount; start.sh
+# then drops back to an unprivileged user before JupyterLab ever runs.
+USER root
+COPY docker/jupyter-entrypoint.sh /usr/local/bin/jupyter-entrypoint.sh
+RUN chmod +x /usr/local/bin/jupyter-entrypoint.sh
+
+ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/jupyter-entrypoint.sh"]
+CMD ["start-notebook.py"]

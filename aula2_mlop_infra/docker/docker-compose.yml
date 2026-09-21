@@ -1,0 +1,81 @@
+# Class 2 — the whole MLOps stack, as code.
+#
+# Three services, one network. Compose puts every service on a default network where the
+# service name is its hostname, which is why the notebook reaches MLflow at
+# http://mlflow:5000 and the API at http://api:8080 — container to container, never
+# through localhost.
+#
+# Start it with:  docker compose up -d --build
+
+services:
+  # Experiment tracking and model registry.
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.16.1
+    ports:
+      # host:container — MLflow listens on 5000 inside the container, but we publish it
+      # on 5001 because macOS binds 5000 to the AirPlay Receiver. Open http://localhost:5001
+      - "5001:5000"
+    volumes:
+      - ../db:/mlflow/db          # SQLite backend store: runs, params, metrics, registry
+      - ../artifacts:/artifacts   # Artifact store: models, plots, datasets
+      - ./init-mlflow.sh:/init-mlflow.sh
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:////mlflow/db/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/artifacts
+    # Running as root and chmod 777 inside init-mlflow.sh is a TEACHING SHORTCUT: it makes
+    # the bind mounts writable whatever the host UID happens to be. Never do this in
+    # production — there you give the container a dedicated non-root user and pre-create
+    # the volumes with the right ownership.
+    user: "0:0"
+    command: ["bash", "/init-mlflow.sh"]
+    restart: unless-stopped
+
+  # The student workspace. Built from Dockerfile.jupyter so the environment is pinned
+  # and versioned, rather than pip-installed at runtime inside the notebook.
+  jupyter:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../notebooks:/home/jovyan/work
+      - ../artifacts:/artifacts
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    # The image starts as root so its entrypoint can match the container user to whoever
+    # owns ../notebooks on your machine — otherwise you could not save your own notebook.
+    # It drops to that unprivileged user before JupyterLab starts. See jupyter-entrypoint.sh.
+    #
+    # No token, because this only ever listens on a laptop during class.
+    command: start-notebook.py --IdentityProvider.token=''
+    depends_on:
+      - mlflow
+    restart: unless-stopped
+
+  # Model serving. Loads whichever Classifier version carries the @champion alias.
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../artifacts:/artifacts
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - MODEL_NAME=Bonsai-Species-Classifier
+      - MODEL_ALIAS=champion
+      # MLflow imports GitPython at startup; without a git binary it prints a noisy
+      # warning that looks like an error to students.
+      - GIT_PYTHON_REFRESH=quiet
+    # depends_on only waits for the container to START, not for MLflow to be READY, and
+    # not for a model to exist. That is why the API loads the model lazily instead of at
+    # import time — see api/app.py.
+    depends_on:
+      - mlflow
+    restart: unless-stopped
+
+# Note: no `container_name:` anywhere. Pinning a container name makes the name global, so
+# the class 3 stack would refuse to start while this one is up. Letting Compose derive
+# names per project keeps the two classes independent.
