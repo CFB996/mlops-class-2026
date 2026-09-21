@@ -37,9 +37,10 @@ STACK_IDS = [s[0] for s in STACKS]
 # unprivileged user. An exemption needs a reason someone can go and read.
 ROOT_USER_EXEMPTIONS = {
     "aula2_mlop_infra/docker/Dockerfile.jupyter": (
-        "starts as root only so its entrypoint can match the container user to the host's "
-        "uid on the bind mount, then drops privileges before JupyterLab runs — "
-        "see docs/adr/0003-jupyter-adopts-host-uid.md"
+        "starts as root only so its entrypoint can match the container user to whoever "
+        "owns the mounted notebooks directory on the host — otherwise a student whose uid "
+        "is not 1000 cannot save their own notebook. It drops privileges before "
+        "JupyterLab runs; see docker/jupyter-entrypoint.sh"
     ),
 }
 
@@ -52,6 +53,12 @@ def load(compose_path):
 @pytest.fixture(params=STACKS, ids=STACK_IDS)
 def stack(request):
     name, compose_path, services, dockerfiles = request.param
+
+    # A class still being written is kept out of the repository, so its stack is simply
+    # absent rather than broken. Skip it instead of failing the whole run.
+    if not os.path.exists(os.path.join(REPO_ROOT, compose_path)):
+        pytest.skip(f"{name}: {compose_path} is not in this repository")
+
     return {
         "name": name,
         "path": compose_path,

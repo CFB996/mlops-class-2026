@@ -7,18 +7,11 @@ e-commerce site.
 
 - **Class 2 — MLOps.** Stand up a containerised stack, train a classifier that identifies
   a bonsai's species, register it, promote it, and serve it. → [aula2_mlop_infra/](aula2_mlop_infra/)
-- **Class 3 — LLMOps.** Take the same product into prompt engineering: BonsAI, an
-  assistant that advises on caring for that species. → [aula3_case_study/](aula3_case_study/)
+- **Class 3 — LLMOps.** Takes the same product into prompt engineering: BonsAI, an
+  assistant that advises on caring for that species. Published closer to the date.
 
 Class 3 extends Class 2 rather than restarting. Class 2 names the species; Class 3 advises
 on it.
-
-## Before you read the code
-
-- [CONTEXT.md](CONTEXT.md) — the vocabulary. What a *Classifier*, a *Prompt Mode*, an
-  *Evaluation Set* and a *Champion* mean here, and which words to avoid.
-- [docs/adr/](docs/adr/) — decisions that are not obvious from the code, and why they were
-  made.
 
 ## Getting started
 
@@ -28,7 +21,7 @@ cd mlops-class-2026/aula2_mlop_infra/docker
 docker compose up -d --build
 ```
 
-Each class folder has its own README with the full walkthrough.
+The full walkthrough is in [aula2_mlop_infra/README.md](aula2_mlop_infra/README.md).
 
 ## Requirements
 
@@ -42,28 +35,16 @@ aula2_mlop_infra/       Class 2 — MLOps
 ├── docker/             The stack: compose file, images, pinned requirements
 └── notebooks/          bonsai_classifier.ipynb
 
-aula3_case_study/       Class 3 — LLMOps
-├── api/                BonsAI chat application
-├── docker/             The stack
-├── notebooks/          Prompt engineering exploration
-├── src/                Prompt evaluation pipeline
-└── tests/
-
-docs/adr/               Architecture decision records
-CONTEXT.md              Domain glossary
+tests/                  Rules the stacks must obey, run on every push
 ```
 
 ## Ports
-
-Both classes publish MLflow on 5001 and JupyterLab on 8888, so **run one class at a time**
-— bring one stack down before starting the other.
 
 | Service | URL |
 |---|---|
 | MLflow | http://localhost:5001 |
 | JupyterLab | http://localhost:8888 |
 | Class 2 API | http://localhost:8080 |
-| Class 3 BonsAI | http://localhost:3000 |
 
 ## Automation
 

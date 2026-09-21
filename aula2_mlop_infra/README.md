@@ -105,8 +105,7 @@ deprecated. We use **aliases** instead: `@candidate` marks a version to be teste
 `@champion` marks the version being served.
 
 The API loads `models:/Bonsai-Species-Classifier@champion`. Moving that alias *is* the
-deployment — and moving it back *is* the rollback. See
-[docs/adr/0002-aliases-not-stages.md](../docs/adr/0002-aliases-not-stages.md).
+deployment — and moving it back *is* the rollback.
 
 ## Troubleshooting
 
