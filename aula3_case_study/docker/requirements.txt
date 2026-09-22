@@ -1,0 +1,20 @@
+# Environment for the BonsAI service.
+#
+# Pinned for the same reason class 2 pins everything: two students starting three months
+# apart must get the same environment.
+#
+# `openai` is here even though we talk to Gemini — Gemini exposes an OpenAI-compatible
+# endpoint, so the SDK is the same and only the base URL changes. See src/llm_client.py.
+
+flask==3.1.3
+openai==3.17.0
+requests==2.34.2
+
+# Same MLflow as class 2: prompts and their scores are tracked in the same registry.
+mlflow==3.16.1
+pandas==3.0.6
+numpy==2.5.3
+matplotlib==3.11.2
+
+# Word-overlap scoring against the Evaluation Set's reference answers.
+rouge-score==0.1.2

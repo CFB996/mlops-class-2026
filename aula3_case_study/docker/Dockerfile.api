@@ -1,0 +1,27 @@
+# BonsAI chat service.
+#
+# Python 3.13 to match the rest of the course.
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# The app lives in api/ and imports the provider seam from src/, so both come along.
+COPY api /app/api
+COPY src /app/src
+
+# So that `from src import llm_client` resolves however the app is launched.
+ENV PYTHONPATH=/app
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["python", "/app/api/bonsai_app.py"]

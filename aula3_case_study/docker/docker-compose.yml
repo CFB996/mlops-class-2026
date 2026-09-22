@@ -1,0 +1,77 @@
+# Class 3 — the LLMOps stack.
+#
+# Secrets come from a .env file in THIS directory, next to this file. Compose looks for
+# .env in the project directory, which is where the compose file lives — a .env at the
+# repository root is not read. Copy .env.example to .env and fill it in.
+#
+# Start it with:  docker compose up -d --build
+
+services:
+  # Experiment tracking: which Prompt Mode scored what.
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.16.1
+    ports:
+      - "5001:5000"
+    volumes:
+      - ../db:/mlflow/db
+      - ../artifacts:/artifacts
+      - ./init-mlflow.sh:/init-mlflow.sh
+    environment:
+      - MLFLOW_BACKEND_STORE_URI=sqlite:////mlflow/db/mlflow.db
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=/artifacts
+    user: "0:0"
+    command: ["bash", "/init-mlflow.sh"]
+    restart: unless-stopped
+
+  # Where the class is taught from: the notebook drives the same src/ modules the BonsAI
+  # service uses, so what you demonstrate is what runs in production.
+  jupyter:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../artifacts:/artifacts
+      - ../notebooks:/home/jovyan/work
+      # Mounted, not copied, so editing a prompt in src/ takes effect on the next cell.
+      - ../src:/home/jovyan/src
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gemini-3.5-flash-lite}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2000}
+      - GIT_PYTHON_REFRESH=quiet
+    command: start-notebook.py --IdentityProvider.token=''
+    depends_on:
+      - mlflow
+    restart: unless-stopped
+
+  # The BonsAI assistant. Answers with the champion Prompt Mode.
+  bonsai:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "3000:3000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      # The key is never written here — only the name of the variable that holds it.
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gemini-3.5-flash-lite}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-2000}
+      # MLflow imports GitPython at startup; with no git binary in the image it prints a
+      # wall of warnings that buries the evaluation output.
+      - GIT_PYTHON_REFRESH=quiet
+    volumes:
+      - ../artifacts:/artifacts
+      - ../api:/app/api
+      - ../src:/app/src
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - mlflow
+    restart: unless-stopped

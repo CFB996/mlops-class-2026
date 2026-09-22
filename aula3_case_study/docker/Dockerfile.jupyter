@@ -1,0 +1,25 @@
+# JupyterLab workspace for class 3.
+#
+# The base image ships without the libraries this class needs, so we install them here,
+# pinned, rather than letting the notebook pip-install at runtime. The environment is
+# described by this repository — same principle as class 2.
+FROM quay.io/jupyter/minimal-notebook:python-3.13
+
+COPY docker/requirements-notebook.txt /tmp/requirements-notebook.txt
+
+RUN pip install --no-cache-dir -r /tmp/requirements-notebook.txt && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# So that `from src import llm_client` works in the notebook exactly as it does in the
+# BonsAI service. The directory itself is mounted by docker-compose.yml.
+ENV PYTHONPATH=/home/jovyan
+
+# Starts as root only long enough to match the host's uid on the bind mount; start.sh
+# then drops back to an unprivileged user before JupyterLab ever runs.
+USER root
+COPY docker/jupyter-entrypoint.sh /usr/local/bin/jupyter-entrypoint.sh
+RUN chmod +x /usr/local/bin/jupyter-entrypoint.sh
+
+ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/jupyter-entrypoint.sh"]
+CMD ["start-notebook.py"]
