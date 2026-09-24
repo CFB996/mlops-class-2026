@@ -46,7 +46,8 @@ services:
       - MLFLOW_CHAT_EXPERIMENT=${MLFLOW_CHAT_EXPERIMENT:-Bonsai-Care-Chat}
       # Which model acts as the judge in mlflow.genai.evaluate. MLflow defaults to
       # openai:/gpt-4.1-mini, which fails with no OpenAI key — a confusing first error in
-      # a lesson about evaluation. `gemini:/` is a native provider and reads GEMINI_API_KEY.
+      # a lesson about evaluation. `gemini:/` is a native provider, and picks up the same
+      # credential the service already answers with.
       - MLFLOW_GENAI_JUDGE_DEFAULT_MODEL=gemini:/${LLM_MODEL:-gemini-3.5-flash-lite}
       - GIT_PYTHON_REFRESH=quiet
     command: start-notebook.py --IdentityProvider.token=''
